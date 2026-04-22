@@ -5,7 +5,7 @@ import 'package:hungry/core/constants/app_colors.dart';
 import 'package:hungry/pages/auth/widgets/app_snackbar.dart';
 import 'package:hungry/pages/product/widgets/product_app_bar.dart';
 import 'package:hungry/pages/settings/data/payment_service.dart';
-import 'package:hungry/pages/settings/data/pyment_model.dart';
+import 'package:hungry/pages/settings/data/payment_model.dart';
 import 'package:hungry/pages/settings/widgets/add_payment_btn.dart';
 import 'package:hungry/pages/settings/widgets/credit_card_form_data.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart';

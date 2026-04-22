@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:hungry/pages/home/models/offeres_model.dart';
+import 'package:hungry/pages/home/models/offer_model.dart';
 
 abstract class OfferState extends Equatable {
   const OfferState();

@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hungry/pages/settings/data/payment_service.dart';
-import 'package:hungry/pages/settings/data/pyment_model.dart';
+import 'package:hungry/pages/settings/data/payment_model.dart';
 import 'payment_state.dart';
 
 class PaymentCubit extends Cubit<PaymentState> {

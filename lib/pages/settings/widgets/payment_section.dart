@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:hungry/pages/auth/widgets/app_snackbar.dart';
 import 'package:hungry/pages/settings/data/payment_service.dart';
-import 'package:hungry/pages/settings/data/pyment_model.dart';
+import 'package:hungry/pages/settings/data/payment_model.dart';
 import 'package:hungry/pages/settings/widgets/addcard.dart';
 import 'package:hungry/pages/settings/widgets/logout_dialog.dart';
 import 'package:hungry/pages/settings/widgets/payment_details.dart';

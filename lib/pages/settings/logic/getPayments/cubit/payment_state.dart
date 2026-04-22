@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:hungry/pages/settings/data/pyment_model.dart';
+import 'package:hungry/pages/settings/data/payment_model.dart';
 
 abstract class PaymentState extends Equatable {
   const PaymentState();

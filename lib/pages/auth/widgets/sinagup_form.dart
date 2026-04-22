@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:hungry/core/constants/app_colors.dart';
-import 'package:hungry/pages/auth/widgets/custom_auth_textfiled.dart';
+import 'package:hungry/pages/auth/widgets/custom_auth_text_field.dart';
 import 'package:hungry/shared/custom_text.dart';
 
 class SinagupForm extends StatelessWidget {

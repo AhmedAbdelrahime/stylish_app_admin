@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:hungry/pages/settings/data/pyment_model.dart';
+import 'package:hungry/pages/settings/data/payment_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PaymentService {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
-import 'package:hungry/pages/auth/widgets/custom_auth_textfiled.dart';
+import 'package:hungry/pages/auth/widgets/custom_auth_text_field.dart';
 
 class ResetPasswordForm extends StatelessWidget {
   const ResetPasswordForm({

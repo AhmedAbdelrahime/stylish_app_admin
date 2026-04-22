@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hungry/pages/home/data/offer_service.dart';
-import 'package:hungry/pages/home/models/offeres_model.dart';
+import 'package:hungry/pages/home/models/offer_model.dart';
 
 import 'offer_state.dart';
 
