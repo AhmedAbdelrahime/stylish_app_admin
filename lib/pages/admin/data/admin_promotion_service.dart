@@ -1,6 +1,7 @@
 import 'package:hungry/pages/admin/data/admin_banner_model.dart';
 import 'package:hungry/pages/admin/data/admin_coupon_model.dart';
 import 'package:hungry/pages/admin/data/admin_offer_model.dart';
+import 'package:hungry/pages/admin/data/admin_audit_service.dart';
 import 'package:path/path.dart' as path;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:typed_data';
@@ -29,10 +30,33 @@ class AdminPromotionService {
         .toList();
   }
 
+  Future<List<AdminCouponModel>> getDashboardCoupons() async {
+    final data = await _supabase
+        .from('coupons')
+        .select('id, code, is_active, expires_at')
+        .order('created_at', ascending: false);
+    return (data as List)
+        .whereType<Map<String, dynamic>>()
+        .map(AdminCouponModel.fromJson)
+        .toList();
+  }
+
   Future<List<AdminBannerModel>> getBanners() async {
     final data = await _supabase
         .from('banners')
         .select()
+        .order('sort_order')
+        .order('created_at', ascending: false);
+    return (data as List)
+        .whereType<Map<String, dynamic>>()
+        .map(AdminBannerModel.fromJson)
+        .toList();
+  }
+
+  Future<List<AdminBannerModel>> getDashboardBanners() async {
+    final data = await _supabase
+        .from('banners')
+        .select('id, title, is_active')
         .order('sort_order')
         .order('created_at', ascending: false);
     return (data as List)
@@ -52,6 +76,17 @@ class AdminPromotionService {
         .toList();
   }
 
+  Future<List<AdminOfferModel>> getDashboardOffers() async {
+    final data = await _supabase
+        .from('offers')
+        .select('id')
+        .order('created_at', ascending: false);
+    return (data as List)
+        .whereType<Map<String, dynamic>>()
+        .map(AdminOfferModel.fromJson)
+        .toList();
+  }
+
   Future<void> createCoupon({
     required String code,
     String? description,
@@ -64,7 +99,7 @@ class AdminPromotionService {
     DateTime? startsAt,
     DateTime? expiresAt,
   }) async {
-    await _supabase.from('coupons').insert({
+    final payload = {
       'code': code.trim().toUpperCase(),
       'description': _normalize(description),
       'discount_type': discountType.trim(),
@@ -75,7 +110,13 @@ class AdminPromotionService {
       'is_active': isActive,
       'starts_at': startsAt?.toIso8601String(),
       'expires_at': expiresAt?.toIso8601String(),
-    });
+    };
+    await _supabase.from('coupons').insert(payload);
+    await _logAuditEvent(
+      action: 'create_coupon',
+      entityType: 'coupon',
+      details: payload,
+    );
   }
 
   Future<void> updateCoupon({
@@ -91,7 +132,7 @@ class AdminPromotionService {
     DateTime? startsAt,
     DateTime? expiresAt,
   }) async {
-    await _supabase.from('coupons').update({
+    final payload = {
       'code': code.trim().toUpperCase(),
       'description': _normalize(description),
       'discount_type': discountType.trim(),
@@ -102,11 +143,24 @@ class AdminPromotionService {
       'is_active': isActive,
       'starts_at': startsAt?.toIso8601String(),
       'expires_at': expiresAt?.toIso8601String(),
-    }).eq('id', id);
+    };
+    await _supabase.from('coupons').update(payload).eq('id', id);
+    await _logAuditEvent(
+      action: 'update_coupon',
+      entityType: 'coupon',
+      entityId: id,
+      details: payload,
+    );
   }
 
   Future<void> deleteCoupon(String id) async {
     await _supabase.from('coupons').delete().eq('id', id);
+    await _logAuditEvent(
+      action: 'delete_coupon',
+      entityType: 'coupon',
+      entityId: id,
+      details: {'id': id},
+    );
   }
 
   Future<void> updateCouponActiveState({
@@ -117,6 +171,12 @@ class AdminPromotionService {
         .from('coupons')
         .update({'is_active': isActive})
         .eq('id', id);
+    await _logAuditEvent(
+      action: 'toggle_coupon_active',
+      entityType: 'coupon',
+      entityId: id,
+      details: {'is_active': isActive},
+    );
   }
 
   Future<void> createBanner({
@@ -128,7 +188,7 @@ class AdminPromotionService {
     required bool isActive,
     required int sortOrder,
   }) async {
-    await _supabase.from('banners').insert({
+    final payload = {
       'title': title.trim(),
       'subtitle': _normalize(subtitle),
       'image_url': imageUrl.trim(),
@@ -136,17 +196,23 @@ class AdminPromotionService {
       'target_value': _normalize(targetValue),
       'is_active': isActive,
       'sort_order': sortOrder,
-    });
+    };
+    await _supabase.from('banners').insert(payload);
+    await _logAuditEvent(
+      action: 'create_banner',
+      entityType: 'banner',
+      details: payload,
+    );
   }
 
-  Future<void> createOffer({
-    required String imageUrl,
-    String? title,
-  }) async {
-    await _supabase.from('offers').insert({
-      'image_url': imageUrl.trim(),
-      'title': _normalize(title),
-    });
+  Future<void> createOffer({required String imageUrl, String? title}) async {
+    final payload = {'image_url': imageUrl.trim(), 'title': _normalize(title)};
+    await _supabase.from('offers').insert(payload);
+    await _logAuditEvent(
+      action: 'create_offer',
+      entityType: 'offer',
+      details: payload,
+    );
   }
 
   Future<void> updateOffer({
@@ -154,14 +220,24 @@ class AdminPromotionService {
     required String imageUrl,
     String? title,
   }) async {
-    await _supabase.from('offers').update({
-      'image_url': imageUrl.trim(),
-      'title': _normalize(title),
-    }).eq('id', id);
+    final payload = {'image_url': imageUrl.trim(), 'title': _normalize(title)};
+    await _supabase.from('offers').update(payload).eq('id', id);
+    await _logAuditEvent(
+      action: 'update_offer',
+      entityType: 'offer',
+      entityId: id,
+      details: payload,
+    );
   }
 
   Future<void> deleteOffer(String id) async {
     await _supabase.from('offers').delete().eq('id', id);
+    await _logAuditEvent(
+      action: 'delete_offer',
+      entityType: 'offer',
+      entityId: id,
+      details: {'id': id},
+    );
   }
 
   Future<void> updateBanner({
@@ -174,7 +250,7 @@ class AdminPromotionService {
     required bool isActive,
     required int sortOrder,
   }) async {
-    await _supabase.from('banners').update({
+    final payload = {
       'title': title.trim(),
       'subtitle': _normalize(subtitle),
       'image_url': imageUrl.trim(),
@@ -182,11 +258,24 @@ class AdminPromotionService {
       'target_value': _normalize(targetValue),
       'is_active': isActive,
       'sort_order': sortOrder,
-    }).eq('id', id);
+    };
+    await _supabase.from('banners').update(payload).eq('id', id);
+    await _logAuditEvent(
+      action: 'update_banner',
+      entityType: 'banner',
+      entityId: id,
+      details: payload,
+    );
   }
 
   Future<void> deleteBanner(String id) async {
     await _supabase.from('banners').delete().eq('id', id);
+    await _logAuditEvent(
+      action: 'delete_banner',
+      entityType: 'banner',
+      entityId: id,
+      details: {'id': id},
+    );
   }
 
   Future<void> reorderBanners(List<AdminBannerModel> banners) async {
@@ -196,6 +285,16 @@ class AdminPromotionService {
           .update({'sort_order': index})
           .eq('id', banners[index].id);
     }
+    await _logAuditEvent(
+      action: 'reorder_banners',
+      entityType: 'banner',
+      details: {
+        'order': [
+          for (var index = 0; index < banners.length; index++)
+            {'id': banners[index].id, 'sort_order': index},
+        ],
+      },
+    );
   }
 
   Future<String> uploadPromotionImageBytes({
@@ -216,14 +315,13 @@ class AdminPromotionService {
     Object? lastError;
     for (final bucket in _promotionBuckets) {
       try {
-        await _supabase.storage.from(bucket).uploadBinary(
-          storagePath,
-          bytes,
-          fileOptions: FileOptions(
-            upsert: true,
-            contentType: contentType,
-          ),
-        );
+        await _supabase.storage
+            .from(bucket)
+            .uploadBinary(
+              storagePath,
+              bytes,
+              fileOptions: FileOptions(upsert: true, contentType: contentType),
+            );
         return _supabase.storage.from(bucket).getPublicUrl(storagePath);
       } catch (error) {
         lastError = error;
@@ -233,10 +331,7 @@ class AdminPromotionService {
     throw lastError ?? 'Could not upload promotion image.';
   }
 
-  String _resolveContentType({
-    required String fileName,
-    String? mimeType,
-  }) {
+  String _resolveContentType({required String fileName, String? mimeType}) {
     if (mimeType != null && mimeType.trim().isNotEmpty) {
       return mimeType;
     }
@@ -260,5 +355,23 @@ class AdminPromotionService {
     final trimmed = value?.trim();
     if (trimmed == null || trimmed.isEmpty) return null;
     return trimmed;
+  }
+
+  Future<void> _logAuditEvent({
+    required String action,
+    required String entityType,
+    String? entityId,
+    Map<String, dynamic>? details,
+  }) async {
+    try {
+      await AdminAuditService(supabase: _supabase).logEvent(
+        action: action,
+        entityType: entityType,
+        entityId: entityId,
+        details: details,
+      );
+    } catch (_) {
+      // Ignore audit logging failures to avoid blocking main admin actions.
+    }
   }
 }

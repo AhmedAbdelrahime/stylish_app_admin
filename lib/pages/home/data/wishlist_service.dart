@@ -100,7 +100,9 @@ class WishlistService {
 
   bool _isMissingWishlistTableError(Object error) {
     final message = error.toString();
-    return message.contains("Could not find the table 'public.wishlist_items'") ||
+    return message.contains(
+          "Could not find the table 'public.wishlist_items'",
+        ) ||
         message.contains('PGRST205') ||
         message.contains('42P01') ||
         message.contains('relation "public.wishlist_items" does not exist');

@@ -7,11 +7,11 @@
 //     final  prefs =await SharedPreferences.getInstance();
 //     await prefs.setString(_tokenKey, token);
 //   }
-  
+
 //    static Future<void> gettoken()async{
 //     final  prefs =await SharedPreferences.getInstance();
 //     await prefs.get(_tokenKey);
-//   } 
+//   }
 //    static Future<void> cleertoken()async{
 //     final  prefs =await SharedPreferences.getInstance();
 //     await prefs.remove(_tokenKey);

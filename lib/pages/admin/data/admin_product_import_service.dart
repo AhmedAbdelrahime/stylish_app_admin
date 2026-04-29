@@ -200,16 +200,16 @@ class AdminProductImportService {
   }) {
     if (rows.isEmpty) return const [];
 
-    final headers = rows.first.map((cell) => _normalizeHeader(stringify(cell))).toList();
+    final headers = rows.first
+        .map((cell) => _normalizeHeader(stringify(cell)))
+        .toList();
     if (headers.every((header) => header.isEmpty)) {
       return const [];
     }
 
     return rows
         .skip(1)
-        .where(
-          (row) => row.any((cell) => stringify(cell).trim().isNotEmpty),
-        )
+        .where((row) => row.any((cell) => stringify(cell).trim().isNotEmpty))
         .map((row) {
           return {
             for (var index = 0; index < headers.length; index++)

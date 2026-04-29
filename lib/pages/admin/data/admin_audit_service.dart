@@ -10,8 +10,7 @@ class AdminAuditService {
   Future<List<AdminAuditLogModel>> getAuditLogs() async {
     final data = await _supabase
         .from('admin_audit_logs')
-        .select(
-          '''
+        .select('''
           *,
           admin_profile:profiles!admin_audit_logs_admin_user_id_fkey(
             id,
@@ -25,13 +24,30 @@ class AdminAuditService {
             pincode,
             role
           )
-          ''',
-        )
+          ''')
         .order('created_at', ascending: false);
 
     return (data as List)
         .whereType<Map<String, dynamic>>()
         .map(AdminAuditLogModel.fromJson)
         .toList();
+  }
+
+  Future<void> logEvent({
+    required String action,
+    required String entityType,
+    String? entityId,
+    Map<String, dynamic>? details,
+    String? adminUserId,
+  }) async {
+    final payload = <String, dynamic>{
+      'admin_user_id': adminUserId ?? _supabase.auth.currentUser?.id,
+      'action': action,
+      'entity_type': entityType,
+      'entity_id': entityId,
+      'details': details ?? {},
+    };
+
+    await _supabase.from('admin_audit_logs').insert(payload);
   }
 }

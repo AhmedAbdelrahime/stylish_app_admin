@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class BottomSheetHelper {
-
   static Future<T?> show<T>({
     required BuildContext context,
     required Widget child,

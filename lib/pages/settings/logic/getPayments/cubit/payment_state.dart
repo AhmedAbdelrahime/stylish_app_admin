@@ -25,10 +25,7 @@ class PaymentDeleting extends PaymentState {
   final List<PaymentMethod> methods;
   final String deletingId;
 
-  const PaymentDeleting({
-    required this.methods,
-    required this.deletingId,
-  });
+  const PaymentDeleting({required this.methods, required this.deletingId});
 
   @override
   List<Object?> get props => [methods, deletingId];

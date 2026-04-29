@@ -112,8 +112,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             radius: 20,
                           )
                         : CustomButton(ontap: _logIn, text: "Login"),
-
-                 
                   ],
                 ),
               ),

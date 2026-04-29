@@ -11,9 +11,7 @@ class CatSection extends StatelessWidget {
     BuildContext context,
     String categoryId,
     String categoryName,
-  ) {
- 
-  }
+  ) {}
 
   @override
   Widget build(BuildContext context) {

@@ -24,9 +24,9 @@ class OfferService {
           ),
         );
 
-    final offers = offersData
-        .whereType<Map<String, dynamic>>()
-        .map(OfferesModel.fromJson);
+    final offers = offersData.whereType<Map<String, dynamic>>().map(
+      OfferesModel.fromJson,
+    );
 
     return [...banners, ...offers];
   }

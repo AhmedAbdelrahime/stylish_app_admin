@@ -116,7 +116,9 @@ class AdminOrderModel {
       notes: json['notes'] as String?,
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
       updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? ''),
-      user: userJson is Map<String, dynamic> ? UserModel.fromJson(userJson) : null,
+      user: userJson is Map<String, dynamic>
+          ? UserModel.fromJson(userJson)
+          : null,
       items: itemsJson is List
           ? itemsJson
                 .whereType<Map<String, dynamic>>()

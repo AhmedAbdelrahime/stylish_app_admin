@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:path/path.dart' as path;
 
+import 'package:hungry/pages/admin/data/admin_audit_service.dart';
 import 'package:hungry/pages/settings/data/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -12,6 +13,18 @@ class ProfileService {
         .from('profiles')
         .select()
         .order('full_name')
+        .order('email');
+
+    return (data as List)
+        .whereType<Map<String, dynamic>>()
+        .map(UserModel.fromJson)
+        .toList();
+  }
+
+  Future<List<UserModel>> getDashboardProfiles() async {
+    final data = await _supabase
+        .from('profiles')
+        .select('id, email, role')
         .order('email');
 
     return (data as List)
@@ -47,14 +60,23 @@ class ProfileService {
       'email': user.email,
       ...user.toJson(),
     });
+    await _logAuditEvent(
+      action: 'update_profile',
+      entityType: 'profile',
+      entityId: user.userId,
+      details: {'email': user.email, ...user.toJson()},
+    );
   }
 
   Future<void> adminUpdateProfile(UserModel user) async {
-    await _supabase.from('profiles').update({
-      'email': user.email,
-      ...user.toJson(),
-      'role': user.role,
-    }).eq('id', user.userId);
+    final payload = {'email': user.email, ...user.toJson(), 'role': user.role};
+    await _supabase.from('profiles').update(payload).eq('id', user.userId);
+    await _logAuditEvent(
+      action: 'admin_update_profile',
+      entityType: 'user',
+      entityId: user.userId,
+      details: payload,
+    );
   }
 
   Future<void> updateUserRole({
@@ -65,6 +87,12 @@ class ProfileService {
         .from('profiles')
         .update({'role': role.trim().toLowerCase()})
         .eq('id', userId);
+    await _logAuditEvent(
+      action: 'update_user_role',
+      entityType: 'user',
+      entityId: userId,
+      details: {'role': role.trim().toLowerCase()},
+    );
   }
 
   Future<bool> isCurrentUserAdmin() async {
@@ -91,6 +119,12 @@ class ProfileService {
         .from('profiles')
         .update({'image': imageUrl})
         .eq('id', userId);
+    await _logAuditEvent(
+      action: 'update_profile_image',
+      entityType: 'profile',
+      entityId: userId,
+      details: {'image': imageUrl},
+    );
   }
 
   Future<String> uploadProfileImage(File file) async {
@@ -135,5 +169,23 @@ class ProfileService {
     await _supabase.from('profiles').upsert(payload);
 
     return _supabase.from('profiles').select().eq('id', user.id).maybeSingle();
+  }
+
+  Future<void> _logAuditEvent({
+    required String action,
+    required String entityType,
+    String? entityId,
+    Map<String, dynamic>? details,
+  }) async {
+    try {
+      await AdminAuditService(supabase: _supabase).logEvent(
+        action: action,
+        entityType: entityType,
+        entityId: entityId,
+        details: details,
+      );
+    } catch (_) {
+      // Keep profile flows working even if audit insert fails.
+    }
   }
 }

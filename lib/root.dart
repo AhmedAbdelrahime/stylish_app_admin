@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:hungry/core/api/supabase_error_mapper.dart';
 import 'package:hungry/core/constants/app_colors.dart';
 import 'package:hungry/core/services/supabase_client.dart';
-import 'package:hungry/pages/admin/screens/admin_category_screen.dart';
 import 'package:hungry/pages/admin/screens/admin_audit_screen.dart';
+import 'package:hungry/pages/admin/screens/admin_category_screen.dart';
 import 'package:hungry/pages/admin/screens/admin_dashboard_screen.dart';
 import 'package:hungry/pages/admin/screens/admin_order_screen.dart';
-import 'package:hungry/pages/admin/screens/admin_promotion_screen.dart';
 import 'package:hungry/pages/admin/screens/admin_product_screen.dart';
+import 'package:hungry/pages/admin/screens/admin_promotion_screen.dart';
 import 'package:hungry/pages/admin/screens/admin_user_screen.dart';
 import 'package:hungry/pages/auth/data/auth_service.dart';
 import 'package:hungry/pages/auth/screens/login_screen.dart';
@@ -27,59 +27,63 @@ class _RootState extends State<Root> {
   late final StreamSubscription<AuthState> _authSubscription;
   final AuthService _authService = AuthService();
 
-  final List<_AdminSection> _sections = const [
+  final List<_AdminSection> _sections = [
     _AdminSection(
       label: 'Dashboard',
       subtitle: 'Track the store, review metrics, and manage daily activity.',
       icon: Icons.space_dashboard_outlined,
-      page: AdminDashboardScreen(),
+      pageBuilder: _buildDashboardPage,
     ),
     _AdminSection(
       label: 'Categories',
       subtitle:
           'Create, edit, and connect categories with the products they organize.',
       icon: Icons.category_outlined,
-      page: AdminCategoryScreen(),
+      pageBuilder: _buildCategoryPage,
     ),
     _AdminSection(
       label: 'Products',
       subtitle:
           'Create, edit, search, and organize the catalog with inventory and status controls.',
       icon: Icons.inventory_2_outlined,
-      page: AdminProductScreen(),
+      pageBuilder: _buildProductPage,
     ),
     _AdminSection(
       label: 'Orders',
       subtitle:
           'Review incoming orders, update payment and delivery states, and inspect user details.',
       icon: Icons.receipt_long_outlined,
-      page: AdminOrderScreen(),
+      pageBuilder: _buildOrderPage,
     ),
     _AdminSection(
       label: 'Users',
       subtitle:
           'Search user accounts, update profile details, and manage admin access cleanly.',
       icon: Icons.people_alt_outlined,
-      page: AdminUserScreen(),
+      pageBuilder: _buildUserPage,
     ),
     _AdminSection(
       label: 'Audit',
       subtitle:
           'Inspect admin activity, trace entity changes, and review structured log details.',
       icon: Icons.history_edu_outlined,
-      page: AdminAuditScreen(),
+      pageBuilder: _buildAuditPage,
     ),
     _AdminSection(
       label: 'Promotions',
       subtitle:
           'Manage coupon campaigns and storefront banners from one admin workspace.',
       icon: Icons.campaign_outlined,
-      page: AdminPromotionScreen(),
+      pageBuilder: _buildPromotionPage,
     ),
   ];
 
   int _currentPage = 0;
   bool _isLoggingOut = false;
+  late final List<Widget?> _loadedPages = List<Widget?>.filled(
+    _sections.length,
+    null,
+  );
 
   @override
   void initState() {
@@ -125,6 +129,7 @@ class _RootState extends State<Root> {
   @override
   Widget build(BuildContext context) {
     final selectedSection = _sections[_currentPage];
+    _loadedPages[_currentPage] ??= selectedSection.pageBuilder();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F8),
@@ -321,9 +326,10 @@ class _RootState extends State<Root> {
                         Expanded(
                           child: IndexedStack(
                             index: _currentPage,
-                            children: _sections
-                                .map((section) => section.page)
-                                .toList(),
+                            children: List.generate(_sections.length, (index) {
+                              return _loadedPages[index] ??
+                                  const SizedBox.shrink();
+                            }),
                           ),
                         ),
                       ],
@@ -339,16 +345,24 @@ class _RootState extends State<Root> {
   }
 }
 
+Widget _buildDashboardPage() => const AdminDashboardScreen();
+Widget _buildCategoryPage() => const AdminCategoryScreen();
+Widget _buildProductPage() => const AdminProductScreen();
+Widget _buildOrderPage() => const AdminOrderScreen();
+Widget _buildUserPage() => const AdminUserScreen();
+Widget _buildAuditPage() => const AdminAuditScreen();
+Widget _buildPromotionPage() => const AdminPromotionScreen();
+
 class _AdminSection {
   const _AdminSection({
     required this.label,
     required this.subtitle,
     required this.icon,
-    required this.page,
+    required this.pageBuilder,
   });
 
   final String label;
   final String subtitle;
   final IconData icon;
-  final Widget page;
+  final Widget Function() pageBuilder;
 }

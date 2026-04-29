@@ -3,11 +3,7 @@ class OfferesModel {
   final String imageUrl;
   final String? title;
 
-  OfferesModel({
-    required this.id,
-    required this.imageUrl,
-    this.title,
-  });
+  OfferesModel({required this.id, required this.imageUrl, this.title});
 
   factory OfferesModel.fromJson(Map<String, dynamic> json) {
     return OfferesModel(

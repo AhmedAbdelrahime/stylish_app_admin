@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:hungry/pages/admin/data/admin_audit_service.dart';
 import 'package:hungry/pages/home/models/product_model.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
@@ -12,14 +13,14 @@ class ProductService {
 
   Future<List<ProductModel>> getProducts() async {
     try {
-      final activeProducts = await _fetchProducts(activeOnly: true);
-      if (activeProducts.isNotEmpty) {
-        return activeProducts;
+      final visibleProducts = await _fetchProducts(excludeHidden: true);
+      if (visibleProducts.isNotEmpty) {
+        return visibleProducts;
       }
 
       // Fallback so the storefront still works if current rows do not use
       // the expected status values yet.
-      return await _fetchProducts(activeOnly: false);
+      return await _fetchProducts(excludeHidden: false);
     } catch (error) {
       debugPrint('Error fetching products: $error');
       return [];
@@ -41,6 +42,23 @@ class ProductService {
     }
   }
 
+  Future<List<ProductModel>> getDashboardProducts() async {
+    try {
+      final data = await _supabase
+          .from('products')
+          .select(
+            'id, category_id, stock_quantity, low_stock_threshold, status, featured, main_image_url, image_urls',
+          )
+          .order('featured', ascending: false)
+          .order('created_at', ascending: false);
+
+      return _mapProducts(data);
+    } catch (error) {
+      debugPrint('Error fetching dashboard products: $error');
+      return [];
+    }
+  }
+
   Future<void> assignProductsToCategory({
     required String categoryId,
     required List<String> productIds,
@@ -56,6 +74,13 @@ class ProductService {
         .from('products')
         .update({'category_id': categoryId})
         .inFilter('id', productIds);
+
+    await _logAuditEvent(
+      action: 'assign_products_to_category',
+      entityType: 'product',
+      entityId: categoryId,
+      details: {'category_id': categoryId, 'product_ids': productIds},
+    );
   }
 
   Future<ProductModel> createProduct({
@@ -98,6 +123,14 @@ class ProductService {
         .insert(payload)
         .select()
         .single();
+
+    await _logAuditEvent(
+      action: 'create_product',
+      entityType: 'product',
+      entityId: data['id']?.toString(),
+      details: payload,
+    );
+
     return ProductModel.fromJson(data);
   }
 
@@ -138,15 +171,35 @@ class ProductService {
     );
 
     await _supabase.from('products').update(payload).eq('id', id);
+
+    await _logAuditEvent(
+      action: 'update_product',
+      entityType: 'product',
+      entityId: id,
+      details: payload,
+    );
   }
 
   Future<void> deleteProduct(String id) async {
     await _supabase.from('products').delete().eq('id', id);
+
+    await _logAuditEvent(
+      action: 'delete_product',
+      entityType: 'product',
+      entityId: id,
+      details: {'id': id},
+    );
   }
 
   Future<void> deleteProducts(List<String> ids) async {
     if (ids.isEmpty) return;
     await _supabase.from('products').delete().inFilter('id', ids);
+
+    await _logAuditEvent(
+      action: 'bulk_delete_products',
+      entityType: 'product',
+      details: {'ids': ids},
+    );
   }
 
   Future<void> bulkUpdateProducts({
@@ -166,6 +219,12 @@ class ProductService {
     if (payload.isEmpty) return;
 
     await _supabase.from('products').update(payload).inFilter('id', ids);
+
+    await _logAuditEvent(
+      action: 'bulk_update_products',
+      entityType: 'product',
+      details: {'ids': ids, ...payload},
+    );
   }
 
   Future<String> uploadProductImage(XFile file) async {
@@ -225,27 +284,28 @@ class ProductService {
     required Uint8List bytes,
     required String contentType,
   }) async {
-    await _supabase.storage.from(bucket).uploadBinary(
-      filePath,
-      bytes,
-      fileOptions: FileOptions(
-        upsert: true,
-        contentType: contentType,
-      ),
-    );
+    await _supabase.storage
+        .from(bucket)
+        .uploadBinary(
+          filePath,
+          bytes,
+          fileOptions: FileOptions(upsert: true, contentType: contentType),
+        );
     debugPrint(
       '[ProductService] uploadProductImage:success bucket=$bucket path=$filePath',
     );
     return _supabase.storage.from(bucket).getPublicUrl(filePath);
   }
 
-  Future<List<ProductModel>> _fetchProducts({required bool activeOnly}) async {
+  Future<List<ProductModel>> _fetchProducts({
+    required bool excludeHidden,
+  }) async {
     PostgrestFilterBuilder<List<dynamic>> query = _supabase
         .from('products')
         .select();
 
-    if (activeOnly) {
-      query = query.eq('status', 'active');
+    if (excludeHidden) {
+      query = query.neq('status', 'hidden');
     }
 
     final data = await query
@@ -334,5 +394,23 @@ class ProductService {
     final trimmed = value?.trim();
     if (trimmed == null || trimmed.isEmpty) return null;
     return trimmed;
+  }
+
+  Future<void> _logAuditEvent({
+    required String action,
+    required String entityType,
+    String? entityId,
+    Map<String, dynamic>? details,
+  }) async {
+    try {
+      await AdminAuditService(supabase: _supabase).logEvent(
+        action: action,
+        entityType: entityType,
+        entityId: entityId,
+        details: details,
+      );
+    } catch (error) {
+      debugPrint('[ProductService] audit_log_error: $error');
+    }
   }
 }

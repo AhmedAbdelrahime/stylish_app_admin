@@ -11,9 +11,8 @@ class PaymentCubit extends Cubit<PaymentState> {
   List<PaymentMethod> methods = [];
 
   Future<void> loadPayments() async {
-
     emit(PaymentLoading());
-    
+
     try {
       methods = await service.getPaymentMethods();
       emit(PaymentLoaded(methods));

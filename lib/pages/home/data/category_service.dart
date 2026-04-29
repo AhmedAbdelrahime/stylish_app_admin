@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:hungry/pages/admin/data/admin_audit_service.dart';
 import 'package:hungry/pages/home/models/category_model.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
@@ -34,6 +35,21 @@ class CategoryService {
     }
   }
 
+  Future<List<CategoryModel>> getDashboardCategories() async {
+    try {
+      final data = await _supabase
+          .from('categories')
+          .select('id, name, is_visible')
+          .order('sort_order')
+          .order('created_at');
+
+      return _mapCategories(data);
+    } catch (error) {
+      debugPrint('[CategoryService] getDashboardCategories:error $error');
+      return [];
+    }
+  }
+
   List<CategoryModel> _mapCategories(dynamic data) {
     if (data is! List) return [];
 
@@ -66,6 +82,17 @@ class CategoryService {
           .select()
           .single();
       debugPrint('[CategoryService] createCategory:modern_success');
+      await _logAuditEvent(
+        action: 'create_category',
+        entityType: 'category',
+        entityId: data['id']?.toString(),
+        details: {
+          'name': name,
+          'image_url': imageUrl,
+          'is_visible': isVisible,
+          'sort_order': sortOrder,
+        },
+      );
       return CategoryModel.fromJson(data);
     } catch (error, stackTrace) {
       debugPrint('[CategoryService] createCategory:modern_error $error');
@@ -79,6 +106,17 @@ class CategoryService {
           .select()
           .single();
       debugPrint('[CategoryService] createCategory:legacy_success');
+      await _logAuditEvent(
+        action: 'create_category',
+        entityType: 'category',
+        entityId: data['id']?.toString(),
+        details: {
+          'name': name,
+          'image_url': imageUrl,
+          'is_visible': isVisible,
+          'sort_order': sortOrder,
+        },
+      );
       return CategoryModel.fromJson(data);
     }
   }
@@ -106,6 +144,17 @@ class CategoryService {
           )
           .eq('id', id);
       debugPrint('[CategoryService] updateCategory:modern_success');
+      await _logAuditEvent(
+        action: 'update_category',
+        entityType: 'category',
+        entityId: id,
+        details: {
+          'name': name,
+          'image_url': imageUrl,
+          'is_visible': isVisible,
+          'sort_order': sortOrder,
+        },
+      );
     } catch (error, stackTrace) {
       debugPrint('[CategoryService] updateCategory:modern_error $error');
       debugPrintStack(
@@ -117,6 +166,17 @@ class CategoryService {
           .update(_buildLegacyPayload(name: name, imageUrl: imageUrl))
           .eq('id', id);
       debugPrint('[CategoryService] updateCategory:legacy_success');
+      await _logAuditEvent(
+        action: 'update_category',
+        entityType: 'category',
+        entityId: id,
+        details: {
+          'name': name,
+          'image_url': imageUrl,
+          'is_visible': isVisible,
+          'sort_order': sortOrder,
+        },
+      );
     }
   }
 
@@ -129,6 +189,12 @@ class CategoryService {
           .from('categories')
           .update({'is_visible': isVisible})
           .eq('id', id);
+      await _logAuditEvent(
+        action: 'toggle_category_visibility',
+        entityType: 'category',
+        entityId: id,
+        details: {'is_visible': isVisible},
+      );
     } catch (error, stackTrace) {
       debugPrint('[CategoryService] updateCategoryVisibility:error $error');
       debugPrintStack(
@@ -148,6 +214,12 @@ class CategoryService {
           .from('categories')
           .update({'sort_order': sortOrder})
           .eq('id', id);
+      await _logAuditEvent(
+        action: 'update_category_sort_order',
+        entityType: 'category',
+        entityId: id,
+        details: {'sort_order': sortOrder},
+      );
     } catch (error, stackTrace) {
       debugPrint('[CategoryService] updateCategorySortOrder:error $error');
       debugPrintStack(
@@ -161,15 +233,19 @@ class CategoryService {
   Future<void> reorderCategories(List<CategoryModel> categories) async {
     final payload = <Map<String, dynamic>>[
       for (var index = 0; index < categories.length; index++)
-        {
-          'id': categories[index].id,
-          'sort_order': index,
-        },
+        {'id': categories[index].id, 'sort_order': index},
     ];
 
     try {
       await _supabase.from('categories').upsert(payload, onConflict: 'id');
-      debugPrint('[CategoryService] reorderCategories:success count=${payload.length}');
+      debugPrint(
+        '[CategoryService] reorderCategories:success count=${payload.length}',
+      );
+      await _logAuditEvent(
+        action: 'reorder_categories',
+        entityType: 'category',
+        details: {'order': payload},
+      );
     } catch (error, stackTrace) {
       debugPrint('[CategoryService] reorderCategories:error $error');
       debugPrintStack(
@@ -183,11 +259,22 @@ class CategoryService {
             .eq('id', row['id'] as String);
       }
       debugPrint('[CategoryService] reorderCategories:fallback_success');
+      await _logAuditEvent(
+        action: 'reorder_categories',
+        entityType: 'category',
+        details: {'order': payload},
+      );
     }
   }
 
   Future<void> deleteCategory(String id) async {
     await _supabase.from('categories').delete().eq('id', id);
+    await _logAuditEvent(
+      action: 'delete_category',
+      entityType: 'category',
+      entityId: id,
+      details: {'id': id},
+    );
   }
 
   Future<String> uploadCategoryImage(XFile file) async {
@@ -287,5 +374,23 @@ class CategoryService {
       'name': name.trim(),
       'image_url': _normalize(imageUrl),
     };
+  }
+
+  Future<void> _logAuditEvent({
+    required String action,
+    required String entityType,
+    String? entityId,
+    Map<String, dynamic>? details,
+  }) async {
+    try {
+      await AdminAuditService(supabase: _supabase).logEvent(
+        action: action,
+        entityType: entityType,
+        entityId: entityId,
+        details: details,
+      );
+    } catch (error) {
+      debugPrint('[CategoryService] audit_log_error: $error');
+    }
   }
 }

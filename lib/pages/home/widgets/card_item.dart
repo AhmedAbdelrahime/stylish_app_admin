@@ -73,9 +73,7 @@ class CardItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-    
-      },
+      onTap: () {},
       child: Container(
         clipBehavior: Clip.antiAlias,
         width: 176,
